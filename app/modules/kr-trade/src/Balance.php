@@ -717,41 +717,41 @@ class Balance extends MySQL {
 
   public function _askWidthdraw($symbol, $amount, $method){
 
-    //if(!filter_var($paypal, FILTER_VALIDATE_EMAIL)) throw new Exception("Please enter a valid email address", 1);
-    if(!is_numeric($amount)) throw new Exception("Amount not valid", 1);
-    $BalanceList = $this->_getBalanceListResum();
-    if(!array_key_exists($symbol, $BalanceList)) throw new Exception("Symbol not available in balance", 1);
-    if($amount > $BalanceList[$symbol]) throw new Exception("Amount not available on your balance", 1);
+    try {
+      //if(!filter_var($paypal, FILTER_VALIDATE_EMAIL)) throw new Exception("Please enter a valid email address", 1);
+      if (!is_numeric($amount)) throw new Exception("Amount not valid", 1);
+      $BalanceList = $this->_getBalanceListResum();
+      if (!array_key_exists($symbol, $BalanceList)) throw new Exception("Symbol not available in balance", 1);
+      if ($amount > $BalanceList[$symbol]) throw new Exception("Amount not available on your balance", 1);
 
-    $token = substr(str_shuffle( "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"), 0, 50);
+      $token = substr(str_shuffle("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"), 0, 50);
 
-    $fees = $amount * $this->_getApp()->_getWithdrawFees();
+      $fees = $amount * $this->_getApp()->_getWithdrawFees();
 
-    $WithdrawReference = $this->_generateWithdrawReference();
+      $WithdrawReference = $this->_generateWithdrawReference();
 
 
+      $r = parent::execSqlRequest("INSERT INTO widthdraw_history_krypto (id_user, id_balance, amount_widthdraw_history, date_widthdraw_history, status_widthdraw_history, paypal_widthdraw_history, token_widthdraw_history, description_widthdraw_history, symbol_widthdraw_history, method_widthdraw_history, fees_widthdraw_history, ref_widthdraw_history)
+                                  VALUES (:id_user, :id_balance, :amount_widthdraw_history, :date_widthdraw_history, :status_widthdraw_history, :paypal_widthdraw_history, :token_widthdraw_history, :description_widthdraw_history, :symbol_widthdraw_history, :method_widthdraw_history, :fees_widthdraw_history, :ref_widthdraw_history)",
+          [
+              'id_user' => $this->_getUser()->_getUserID(),
+              'id_balance' => $this->_getBalanceID(),
+              'amount_widthdraw_history' => $amount,
+              'date_widthdraw_history' => time(),
+              'status_widthdraw_history' => 0,
+              'paypal_widthdraw_history' => '',
+              'token_widthdraw_history' => $token,
+              'description_widthdraw_history' => 'Widthdraw (' . $this->_getApp()->_formatNumber($amount, ($amount > 10 ? 2 : 6)) . ' ' . $symbol . ') (' . $this->_getApp()->_formatNumber($fees, ($fees > 10 ? 2 : 6)) . ' ' . $symbol . ' Fees)',
+              'symbol_widthdraw_history' => $symbol,
+              'method_widthdraw_history' => $method,
+              'fees_widthdraw_history' => $fees,
+              'ref_widthdraw_history' => $WithdrawReference
+          ]);
 
-    $r = parent::execSqlRequest("INSERT INTO widthdraw_history_krypto (id_user, id_balance, amount_widthdraw_history, date_widthdraw_history, status_widthdraw_history, paypal_widthdraw_history, token_widthdraw_history, description_widthdraw_history, symbol_widthdraw_history, method_widthdraw_history, fees_widthdraw_history, ref_widthdraw_history)
-                                VALUES (:id_user, :id_balance, :amount_widthdraw_history, :date_widthdraw_history, :status_widthdraw_history, :paypal_widthdraw_history, :token_widthdraw_history, :description_widthdraw_history, :symbol_widthdraw_history, :method_widthdraw_history, :fees_widthdraw_history, :ref_widthdraw_history)",
-                                [
-                                  'id_user' => $this->_getUser()->_getUserID(),
-                                  'id_balance' => $this->_getBalanceID(),
-                                  'amount_widthdraw_history' => $amount,
-                                  'date_widthdraw_history' => time(),
-                                  'status_widthdraw_history' => 0,
-                                  'paypal_widthdraw_history' => '',
-                                  'token_widthdraw_history' => $token,
-                                  'description_widthdraw_history' => 'Widthdraw ('.$this->_getApp()->_formatNumber($amount, ($amount > 10 ? 2 : 6)).' '.$symbol.') ('.$this->_getApp()->_formatNumber($fees, ($fees > 10 ? 2 : 6)).' '.$symbol.' Fees)',
-                                  'symbol_widthdraw_history' => $symbol,
-                                  'method_widthdraw_history' => $method,
-                                  'fees_widthdraw_history' => $fees,
-                                  'ref_widthdraw_history' => $WithdrawReference
-                                ]);
-
-      if(!$r) throw new Exception("Error : Fail to create widthdraw request (please contact the support)", 1);
+      if (!$r) throw new Exception("Error : Fail to create widthdraw request (please contact the support)", 1);
 
       $template = new Liquid\Template();
-      $template->parse(file_get_contents(APP_URL.'/app/modules/kr-user/templates/confirmWidthdraw.tpl'));
+      $template->parse(file_get_contents(APP_URL . '/app/modules/kr-user/templates/confirmWidthdraw.tpl'));
 
       $IsRealMoney = $this->_symbolIsMoney($amount);
 
@@ -759,26 +759,28 @@ class Balance extends MySQL {
       $InfosWithdraw = $Withdraw->_getInformationWithdrawMethod($method);
 
       $infosWithdrawText = "";
-      foreach($Withdraw->_getWithdrawData($InfosWithdraw) as $key => $value){
-        $infosWithdrawText .= "<li><b>".$key." : </b> ".$value."</li>";
+      foreach ($Withdraw->_getWithdrawData($InfosWithdraw) as $key => $value) {
+        $infosWithdrawText .= "<li><b>" . $key . " : </b> " . $value . "</li>";
       }
 
 
       // Render & send email
-      $this->_getApp()->_sendMail($this->_getUser()->_getEmail(), $this->_getApp()->_getAppTitle().' - Withdraw confirmation needed', $template->render([
-        'APP_URL' => APP_URL,
-        'APP_TITLE' => $this->_getApp()->_getAppTitle(),
-        'SUBJECT' => 'Withdraw confirmation needed',
-        'LOGO_BLACK' => $this->_getApp()->_getLogoBlackPath(),
-        'USER_NAME' => $this->_getUser()->_getName(),
-        'CURRENCY' => $symbol,
-        'CONFIRM_LINK' => APP_URL.'/app/modules/kr-trade/src/actions/askWidthdrawApprove.php?token='.App::encrypt_decrypt('encrypt', $token),
-        'AMOUNT' => $this->_getApp()->_formatNumber($amount, ($IsRealMoney ? 2 : 8)).' '.$symbol,
-        'TYPE' => ucfirst($InfosWithdraw['type_user_widthdraw']),
-        'INFOS_WITHDRAW' => $infosWithdrawText,
-        'DATE' => date('d/m/Y H:i:s', time())
+      $this->_getApp()->_sendMail($this->_getUser()->_getEmail(), $this->_getApp()->_getAppTitle() . ' - Withdraw confirmation needed', $template->render([
+          'APP_URL' => APP_URL,
+          'APP_TITLE' => $this->_getApp()->_getAppTitle(),
+          'SUBJECT' => 'Withdraw confirmation needed',
+          'LOGO_BLACK' => $this->_getApp()->_getLogoBlackPath(),
+          'USER_NAME' => $this->_getUser()->_getName(),
+          'CURRENCY' => $symbol,
+          'CONFIRM_LINK' => APP_URL . '/app/modules/kr-trade/src/actions/askWidthdrawApprove.php?token=' . App::encrypt_decrypt('encrypt', $token),
+          'AMOUNT' => $this->_getApp()->_formatNumber($amount, ($IsRealMoney ? 2 : 8)) . ' ' . $symbol,
+          'TYPE' => ucfirst($InfosWithdraw['type_user_widthdraw']),
+          'INFOS_WITHDRAW' => $infosWithdrawText,
+          'DATE' => date('d/m/Y H:i:s', time())
       ]));
+    } catch (Exception $e) {
       throw new Exception(APP_URL.'/app/modules/kr-trade/src/actions/askWidthdrawApprove.php?token='.App::encrypt_decrypt('encrypt', $token));
+    }
   }
 
   public function _getAskWidthdrawEmail(){
