@@ -88,7 +88,8 @@ try {
 
         echo json_encode([
           'error' => 0,
-          'msg' => 'Your new password in on the way !'
+          'msg' => 'Your new password in on the way !',
+          'view' => 'emailSent'
         ]);
     }
 } catch (Exception $e) {

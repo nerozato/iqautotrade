@@ -145,7 +145,11 @@ function iniLoginViewControllers(){
       let respond = jQuery.parseJSON(data);
       if(respond.error == 0){
         showAlert('Succes !', respond.msg, 'success');
-        showLoginView('login');
+        if(respond.view != undefined && respond.view != ''){
+          showLoginView(respond.view);
+        } else{
+          showLoginView('login');
+        }
       } else if(respond.error == 1){
         showAlert('Ooops', respond.msg, 'error');
       } else if(respond.error == 2){
