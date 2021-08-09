@@ -672,7 +672,7 @@ class User extends MySQL {
       'LOGO_BLACK' => $App->_getLogoBlackPath(),
       'SUBJECT' => 'Password reset',
       'USER_NAME' => (count($infosUser) > 0 ? $infosUser[0]['name_user'] : ''),
-      'USER_RESET_LINK' => APP_URL.'/?a=pwdr&token='.base64_encode(App::encrypt_decrypt('encrypt', $Email.'||--||'.$generateResetToken))
+      'USER_RESET_LINK' => APP_URL.'/home.php?a=pwdr&token='.base64_encode(App::encrypt_decrypt('encrypt', $Email.'||--||'.$generateResetToken))
     ]));
 
     return true;
